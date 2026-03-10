@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARK VIP | ADMIN PANEL</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root { 
+            --neon-blue: #00f2ff; 
+            --neon-pink: #ff007f; 
+            --bg-dark: #05070a; 
+            --panel-bg: rgba(10, 15, 25, 0.98);
+        }
+
+        body { 
+            margin: 0; 
+            background: var(--bg-dark); 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+
+        /* GİRİŞ EKRANI */
+        #login-container {
+            background: var(--panel-bg);
+            padding: 40px;
+            border-radius: 25px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+            width: 320px;
+            text-align: center;
+        }
+
+        .dark-vip-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        .dark-vip-title span { color: var(--neon-blue); }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border-radius: 12px;
+            border: 1px solid #222;
+            background: #000;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(45deg, var(--neon-blue), #0072ff);
+            color: black;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            text-transform: uppercase;
+        }
+
+        /* ANA PANEL */
+        #main-panel { display: none; width: 100%; max-width: 500px; padding: 20px; }
+        
+        nav { 
+            position: fixed; top: 0; left: 0; width: 100%; 
+            padding: 15px 20px; background: rgba(0,0,0,0.9); 
+            border-bottom: 2px solid var(--neon-blue);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; z-index: 100;
+        }
+
+        .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; border: 1px solid #1a1a1a; margin-top: 80px; }
+        
+        .info-bar { 
+            background: rgba(0, 242, 255, 0.1); 
+            padding: 10px; 
+            border-radius: 8px; 
+            border-left: 4px solid var(--neon-blue); 
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .btn-gen { 
+            width: 100%; padding: 16px; background: var(--neon-pink); 
+            color: white; border: none; border-radius: 50px; 
+            font-weight: bold; box-shadow: 0 0 15px var(--neon-pink); cursor: pointer; 
+        }
+
+        .table-container { background: white; border-radius: 15px; overflow: hidden; margin-top: 25px; color: #333; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #f0f2f5; padding: 12px; border-bottom: 2px solid #ddd; }
+        td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        .del-btn { color: #ffc107; border: 1px solid #ffc107; background: transparent; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="login-container">
+        <div class="dark-vip-title">DARK <span>VIP</span></div>
+        <p style="color: #666; font-size: 12px; margin-bottom: 15px;">Yönetici Paneline Giriş Yapın</p>
+        <input type="text" id="user" placeholder="E-posta">
+        <input type="password" id="pass" placeholder="Şifre">
+        <button class="btn-login" onclick="checkAuth()">GİRİŞ YAP</button>
+    </div>
+
+    <div id="main-panel">
+        <nav>
+            <div style="font-weight:bold; letter-spacing:1px;">DARK <span>VIP PANEL</span></div>
+            <div onclick="location.reload()" style="cursor:pointer; font-size:14px; color:var(--neon-pink);">Çıkış 🚪</div>
+        </nav>
+
+        <div class="card">
+            <div class="info-bar">ℹ️ Total Saldo: $2,147,321,637 (Unlimited)</div>
+            <h3 style="margin-top:0; color:var(--neon-blue);">Yeni Key Oluştur</h3>
+            <select id="game" style="width:100%; padding:12px; background:#000; color:white; border-radius:10px; margin-bottom:15px; border:1px solid #333;">
+                <option value="PUBG Mobile">PUBG Mobile</option>
+                <option value="Brawl Stars">Brawl Stars</option>
+            </select>
+            <button class="btn-gen" onclick="addDarkKey()">YENİ DARK KEY ÜRET</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Oyun</th>
+                        <th>Lisans Anahtarı</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody id="keyData"></tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+    // Senin Firebase Yapılandırman
+    const firebaseConfig = {
+        apiKey: "AIzaSyCcVlKaNh9EytpXcwQReZ6rJ_9Z345c9as",
+        authDomain: "dark-a2acd.firebaseapp.com",
+        databaseURL: "https://dark-a2acd-default-rtdb.firebaseio.com",
+        projectId: "dark-a2acd",
+        storageBucket: "dark-a2acd.firebasestorage.app",
+        messagingSenderId: "184403615756",
+        appId: "1:184403615756:web:83516d22cd646af687ce29"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Yetkili Kullanıcı Listesi
+    const users = {
+        "Leblebi@gmail.com": "leblebi123",
+        "Kayısı@gmail.com": "kayısı1903",
+        "Elma@gmail.com": "elma1453",
+        "Erik@gmail.com": "erik1905"
+    };
+
+    // Giriş Kontrolü
+    function checkAuth() {
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pass').value;
+
+        if (users[u] && users[u] === p) {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('main-panel').style.display = 'block';
+            loadKeys();
+        } else {
+            alert("Hata: Geçersiz kullanıcı adı veya şifre!");
+        }
+    }
+
+    // Key Üretme Fonksiyonu
+    function addDarkKey() {
+        const game = document.getElementById('game').value;
+        const key = "DARK-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+        
+        database.ref('keys/' + key).set({
+            game: game,
+            key: key
+        }).then(() => alert("Anahtar Kaydedildi: " + key));
+    }
+
+    // Verileri Firebase'den Çekme
+    function loadKeys() {
+        database.ref('keys').on('value', (snap) => {
+            const tbody = document.getElementById('keyData');
+            tbody.innerHTML = "";
+            snap.forEach((child) => {
+                const val = child.val();
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${val.game}</td>
+                        <td style="color:#007bff; font-weight:bold;">${val.key}</td>
+                        <td><button class="del-btn" onclick="removeKey('${val.key}')">🗑️ Sil</button></td>
+                    </tr>`;
+            });
+        });
+    }
+
+    // Key Silme Fonksiyonu
+    function removeKey(id) {
+        if(confirm("Bu anahtarı silmek istediğine emin misin?")) {
+            database.ref('keys/' + id).remove();
+        }
+    }
+</script>
+</body>
+</html>
