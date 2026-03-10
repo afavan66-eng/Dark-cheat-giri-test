@@ -47,7 +47,7 @@
         }
         .dark-vip-title span { color: var(--neon-blue); }
 
-        input {
+        input, select {
             width: 100%;
             padding: 14px;
             margin: 10px 0;
@@ -101,20 +101,19 @@
         }
 
         .table-container { background: white; border-radius: 15px; overflow: hidden; margin-top: 25px; color: #333; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: #f0f2f5; padding: 12px; border-bottom: 2px solid #ddd; }
-        td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
-        .del-btn { color: #ffc107; border: 1px solid #ffc107; background: transparent; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #f0f2f5; padding: 10px; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
+        .del-btn { color: #ffc107; border: 1px solid #ffc107; background: transparent; padding: 5px; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="login-container">
         <div class="dark-vip-title">DARK <span>VIP</span></div>
-        <p style="color: #666; font-size: 12px; margin-bottom: 15px;">Yönetici Paneline Giriş Yapın</p>
         <input type="text" id="user" placeholder="E-posta">
         <input type="password" id="pass" placeholder="Şifre">
-        <button class="btn-login" onclick="checkAuth()">GİRİŞ YAP</button>
+        <button class="btn-login" onclick="checkAuth()">SİSTEME GİRİŞ YAP</button>
     </div>
 
     <div id="main-panel">
@@ -125,11 +124,24 @@
 
         <div class="card">
             <div class="info-bar">ℹ️ Total Saldo: $2,147,321,637 (Unlimited)</div>
-            <h3 style="margin-top:0; color:var(--neon-blue);">Yeni Key Oluştur</h3>
-            <select id="game" style="width:100%; padding:12px; background:#000; color:white; border-radius:10px; margin-bottom:15px; border:1px solid #333;">
+            
+            <label style="font-size: 12px; color: #888;">Oyun</label>
+            <select id="game">
                 <option value="PUBG Mobile">PUBG Mobile</option>
                 <option value="Brawl Stars">Brawl Stars</option>
             </select>
+
+            <label style="font-size: 12px; color: #888;">Süre</label>
+            <select id="duration">
+                <option value="1">1 Gün</option>
+                <option value="7">1 Hafta</option>
+                <option value="30">1 Ay</option>
+                <option value="9999">Sınırsız (Ömür Boyu)</option>
+            </select>
+
+            <label style="font-size: 12px; color: #888;">Özel Key Adı (İsteğe bağlı)</label>
+            <input type="text" id="customKey" placeholder="Örn: DARK-EFECAN-VIP">
+
             <button class="btn-gen" onclick="addDarkKey()">YENİ DARK KEY ÜRET</button>
         </div>
 
@@ -138,7 +150,8 @@
                 <thead>
                     <tr>
                         <th>Oyun</th>
-                        <th>Lisans Anahtarı</th>
+                        <th>Key</th>
+                        <th>Süre</th>
                         <th>İşlem</th>
                     </tr>
                 </thead>
@@ -148,7 +161,7 @@
     </div>
 
 <script>
-    // Senin Firebase Yapılandırman
+    // Firebase Yapılandırması
     const firebaseConfig = {
         apiKey: "AIzaSyCcVlKaNh9EytpXcwQReZ6rJ_9Z345c9as",
         authDomain: "dark-a2acd.firebaseapp.com",
@@ -162,7 +175,7 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Yetkili Kullanıcı Listesi
+    // Kullanıcı Listesi
     const users = {
         "Leblebi@gmail.com": "leblebi123",
         "Kayısı@gmail.com": "kayısı1903",
@@ -170,32 +183,39 @@
         "Erik@gmail.com": "erik1905"
     };
 
-    // Giriş Kontrolü
     function checkAuth() {
         const u = document.getElementById('user').value;
         const p = document.getElementById('pass').value;
-
         if (users[u] && users[u] === p) {
             document.getElementById('login-container').style.display = 'none';
             document.getElementById('main-panel').style.display = 'block';
             loadKeys();
         } else {
-            alert("Hata: Geçersiz kullanıcı adı veya şifre!");
+            alert("Hatalı Giriş!");
         }
     }
 
-    // Key Üretme Fonksiyonu
     function addDarkKey() {
         const game = document.getElementById('game').value;
-        const key = "DARK-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+        const duration = document.getElementById('duration').value;
+        let keyName = document.getElementById('customKey').value.trim().toUpperCase();
         
-        database.ref('keys/' + key).set({
+        // Custom key boşsa otomatik üret
+        if (keyName === "") {
+            keyName = "DARK-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+        
+        database.ref('keys/' + keyName).set({
             game: game,
-            key: key
-        }).then(() => alert("Anahtar Kaydedildi: " + key));
+            key: keyName,
+            duration: duration,
+            timestamp: Date.now()
+        }).then(() => {
+            alert("Oluşturuldu: " + keyName);
+            document.getElementById('customKey').value = "";
+        });
     }
 
-    // Verileri Firebase'den Çekme
     function loadKeys() {
         database.ref('keys').on('value', (snap) => {
             const tbody = document.getElementById('keyData');
@@ -206,15 +226,15 @@
                     <tr>
                         <td>${val.game}</td>
                         <td style="color:#007bff; font-weight:bold;">${val.key}</td>
-                        <td><button class="del-btn" onclick="removeKey('${val.key}')">🗑️ Sil</button></td>
+                        <td>${val.duration == 9999 ? '∞' : val.duration + ' G'}</td>
+                        <td><button class="del-btn" onclick="removeKey('${val.key}')">🗑️</button></td>
                     </tr>`;
             });
         });
     }
 
-    // Key Silme Fonksiyonu
     function removeKey(id) {
-        if(confirm("Bu anahtarı silmek istediğine emin misin?")) {
+        if(confirm("Silmek istediğine emin misin?")) {
             database.ref('keys/' + id).remove();
         }
     }
